@@ -69,7 +69,7 @@ def outputFlashingCallback():
 
 
 	# Cycle reseter
-	positionInTheCycle++
+	positionInTheCycle += 1
 	if positionInTheCycle == pwmFlashNumberOfSteps:
 		positionInTheCycle = 0
 
