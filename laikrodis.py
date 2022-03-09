@@ -1,96 +1,55 @@
 import RPi.GPIO as GPIO
 import time
-import datetime as dt
-from threading import Timer
-import math
+from datetime import datetime
+from astral import Astral
 
 
+#          0,  1, 2,  3,  4,  5,  6,  7,  8,  9, 10, 11
+outputs = [2,  3, 4, 14, 15, 17, 18, 27, 22, 23, 24, 10]
+borderLamps = 19
 
-# ------ Constants
-pwmFrequency = 50 # Hz
-
-pwmFlashFrequency = 0.3 # Hz
-pwmFlashNumberOfSteps = 50 # Number of steps to perform one flash
-
-
-
-# ------ Pins On Raspberry Board
-# 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
-hourPins = [2, 24, 3, 4, 14, 22, 15, 17, 18, 27, 23, 10] # - pin on the RPI (ex: pinOnBoard = hourPins[hour])
-
-
-
-# ------ Initialisation of pins
 GPIO.setmode(GPIO.BCM)
-GPIO.setup(hourPins, GPIO.OUT)
-
-
-
-# ------ Low level PWM output objects
-outputPwms[12]
-for x in range(0, 12):
-	outputPwms[x] = GPIO.PWM(hourPins[x], frequency)
-
-
-
-# ------------------------------------------------------------------------
-# ------ Built for easy output flashing control
-
-#  1 -|         ,-'''-.
-#     |      ,-'       `-.           
-#     |    ,'             `.
-#     |  ,'                 `.
-#     | /                     \
-#     |/                       \
-# ----+-------------------------\--------------------------
-#     |          __           __ \          __           /  __
-#     |          ||/2         ||  \        3||/2        /  2||
-#     |                            `.                 ,'
-#     |                              `.             ,'
-#     |                                `-.       ,-'
-# -1 -|                                   `-,,,-'
-
-positionInTheCycle = 0
-flashingMinRange = 40
-flashingMaxRange = 80
-def outputFlashingCallback():
-
-	hour = dt.datetime.now().hour
-		if hour >= 12:
-			hour = hour - 12
-
-
-	amplitude = (flashingMaxRange - flashingMinRange) / 2
-	axisX = flashingMaxRange - amplitude
-	pwmAtThisMoment = axisX + amplitude * math.sin(positionInTheCycle/pwmFlashNumberOfSteps)
-
-
-	outputPwms[hour].ChangeDutyCycle(pwmAtThisMoment)
-
-
-	# Cycle reseter
-	positionInTheCycle += 1
-	if positionInTheCycle == pwmFlashNumberOfSteps:
-		positionInTheCycle = 0
-
-	# Infinite loop
-    Timer((1/pwmFlashFrequency)/pwmFlashNumberOfSteps, timeout).start()
-
-
-Timer(1/pwmFlashFrequency/pwmFlashNumberOfSteps, timeout).start()
-# ------------------------------------------------------------------------
+GPIO.setup(outputs, GPIO.OUT)
+GPIO.setup(borderLamps, GPIO.OUT)
 
 
 def show_time_v1():
 	while True:
-		hour = dt.datetime.now().hour
-		if hour >= 12:
-			hour = hour - 12
+		hour = datetime.now().hour
 
-		for output in outputs:
-			GPIO.output(output, GPIO.HIGH)
 
-		GPIO.output(outputs[hour], GPIO.LOW)
+		a = Astral()
+		a.solar_depression = 'civil'
+		sun = a['Vilnius'].sun(date=datetime.now(), local=True)
+		sunrise = sun['sunrise'].time().hour + 1
+		sunset = sun['sunset'].time().hour - 1
+
+
+		if(hour<=sunrise or hour>=sunset):
+			GPIO.output(borderLamps, GPIO.HIGH)
+
+
+			if hour > 12:
+				hour = hour - 12 - 1
+			elif hour > 0:
+				hour = hour - 1
+			else:
+				hour = 11
+
+			for output in outputs:
+				GPIO.output(output, GPIO.LOW)
+
+			GPIO.output(outputs[hour], GPIO.HIGH)
+			print("Lamp (0..11): " + str(hour) )
+
+
+		else:
+			GPIO.output(borderLamps, GPIO.LOW)
+			for output in outputs:
+				GPIO.output(output, GPIO.LOW)
+			print("Turned OFF. Sunrise: " + str(sunrise) + " Sunset: " + str(sunset))
+
+
 		time.sleep(3)
 
 
@@ -99,9 +58,10 @@ def test():
 	while True:
 		for output in outputs:
 			GPIO.output(output, GPIO.HIGH)
-			time.sleep(0.4)
+			time.sleep(0.1)
 		for output in outputs:
 			GPIO.output(output, GPIO.LOW)
-			time.sleep(0.4)
+			time.sleep(0.1)
 
-#show_time_v1()
+show_time_v1()
+#test()
