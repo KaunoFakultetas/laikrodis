@@ -21,8 +21,8 @@ def show_time_v1():
 		a = Astral()
 		a.solar_depression = 'civil'
 		sun = a['Vilnius'].sun(date=datetime.now(), local=True)
-		sunrise = sun['sunrise'].time().hour + 1
-		sunset = sun['sunset'].time().hour - 1
+		sunrise = sun['sunrise'].time().hour + 0
+		sunset = sun['sunset'].time().hour - 0
 
 
 		if(hour<=sunrise or hour>=sunset):
